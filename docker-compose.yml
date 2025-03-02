@@ -1,0 +1,64 @@
+services:
+  reverse-proxy:
+    image: traefik:v3.3
+    command: --api.insecure=true --providers.docker
+    ports:
+      - 80:80
+      - 8080:8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - web  
+
+  grafana:
+    image: grafana/grafana
+    restart: unless-stopped
+    labels:
+      - "traefik.http.routers.grafanarouter.rule=Host(`grafana.localhost`)"
+    networks:
+      - web  
+
+  keycloak:
+    image: keycloak/keycloak
+    command: start-dev
+    container_name: keycloak
+    environment:
+      - KC_BOOTSTRAP_ADMIN_USERNAME=admin
+      - KC_BOOTSTRAP_ADMIN_PASSWORD=admin
+      - KC_HEALTH_ENABLED=true
+      - KC_METRICS_ENABLED=true
+      - KC_HTTP_MANAGEMENT_PORT=9000
+      #- KC_HTTP_MANAGEMENT_RELATIVE_PATH=/management
+    ports:
+      - 9000:9000
+    #   - 8000:8000
+    expose:
+      - 9000
+    labels:
+      - "traefik.http.routers.keycloakrouter.rule=Host(`keycloak.localhost`)"
+    networks:
+      - web
+
+  metabase:
+    image: metabase/metabase
+    container_name: metabase
+    restart: unless-stopped
+    labels:
+      - "traefik.http.routers.metabaserouter.rule=Host(`metabase.localhost`)"
+    networks:
+      - web  
+
+  prometheus:
+    image: prom/prometheus
+    restart: unless-stopped
+    labels:
+      - "traefik.http.routers.prometheusrouter.rule=Host(`prometheus.localhost`)"
+    volumes:
+      - "./prometheus.yml:/etc/prometheus/prometheus.yml"
+    networks:
+      - web
+
+networks:
+  web:
+    external: true
+    driver: bridge                    
