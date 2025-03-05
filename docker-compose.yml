@@ -1,10 +1,10 @@
 services:
   reverse-proxy:
     image: traefik:v3.3
-    command: --api.insecure=true --providers.docker
+    command: --api.insecure=true --providers.docker # allowing http connections
     ports:
       - 80:80
-      - 8080:8080
+      - 8080:8080 # for the traefik dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
@@ -12,7 +12,9 @@ services:
 
   grafana:
     image: grafana/grafana
+    container_name: grafana
     restart: unless-stopped
+    # adding grafana.localhost as the local dns
     labels:
       - "traefik.http.routers.grafanarouter.rule=Host(`grafana.localhost`)"
     networks:
@@ -39,14 +41,26 @@ services:
     networks:
       - web
 
-  metabase:
-    image: metabase/metabase
-    container_name: metabase
+  backend-service:
+    image: node:latest
+    container_name: backend-service
     restart: unless-stopped
+    ports:
+      - 5000:5000
     labels:
-      - "traefik.http.routers.metabaserouter.rule=Host(`metabase.localhost`)"
+      - "traefik.http.routers.backendrouter.rule=Host(`backend.localhost`)"
     networks:
-      - web  
+      - web
+
+  database-service:
+    image: postgres:17.4
+    container_name: database-service
+    restart: unless-stopped
+    environment:
+      - POSTGRES_PASSWORD=postgres
+
+    networks:
+      - db              
 
   prometheus:
     image: prom/prometheus
@@ -59,6 +73,7 @@ services:
       - web
 
 networks:
+  db:
   web:
     external: true
     driver: bridge                    
