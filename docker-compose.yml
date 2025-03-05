@@ -42,7 +42,7 @@ services:
       - web
 
   backend-service:
-    image: node:latest
+    image: kenmunyao/hlove-backend:latest
     container_name: backend-service
     restart: unless-stopped
     ports:
