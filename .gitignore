@@ -1,0 +1,3 @@
+./backend-service/.env
+./backend-service/node_modules
+./backend-service/package-lock.json

@@ -42,25 +42,43 @@ services:
       - web
 
   backend-service:
-    image: kenmunyao/hlove-backend:latest
+    image: monitoring-backend-service:latest
+    depends_on:
+      - dbservice
+    build: ./backend-service
+    env_file: ./backend-service/.env  
     container_name: backend-service
     restart: unless-stopped
     ports:
       - 5000:5000
+    expose:
+      - 5000
+    stdin_open: true
+    tty: true  
     labels:
       - "traefik.http.routers.backendrouter.rule=Host(`backend.localhost`)"
     networks:
       - web
 
-  database-service:
-    image: postgres:17.4
+  dbservice:
+    image: postgres:17.2-alpine
     container_name: database-service
     restart: unless-stopped
+    expose:
+      - 5432
+    ports:
+      - 5432:5432  
     environment:
-      - POSTGRES_PASSWORD=postgres
-
+      - POSTGRES_PASSWORD=${DB_PASSWORD}       
     networks:
-      - db              
+      - web
+    volumes:
+      - type: bind
+        source: ./initialize-database.sh
+        target: /docker-entrypoint-initdb.d/initialize-database.sh
+      - type: volume
+        # source: database-service
+        target: /var/lib/postgresql/data  
 
   prometheus:
     image: prom/prometheus
@@ -73,7 +91,6 @@ services:
       - web
 
 networks:
-  db:
   web:
     external: true
     driver: bridge                    
